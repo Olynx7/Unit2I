@@ -11,13 +11,45 @@ from ..errors import ErrorInfo, ProviderError
 
 
 def is_retryable_status(status_code: int) -> bool:
-    return status_code in {429, 500, 502, 503, 504}
+    return status_code in {408, 429, 500, 502, 503, 504}
+
+
+def _map_status_to_code(status_code: int) -> str:
+    if status_code == 429:
+        return "RATE_LIMITED"
+    if status_code in {408, 504}:
+        return "TIMEOUT"
+    if status_code in {400, 401, 403, 404, 405, 409, 413, 415, 422}:
+        return "INVALID_REQUEST"
+    return "PROVIDER_ERROR"
+
+
+def _extract_error_message(raw: dict[str, Any] | str) -> str:
+    if isinstance(raw, str):
+        return raw.strip() or "provider request failed"
+
+    for key in ("message", "msg", "error_message", "errorMsg"):
+        value = raw.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+
+    error = raw.get("error")
+    if isinstance(error, dict):
+        for key in ("message", "msg", "error_message", "errorMsg"):
+            value = error.get(key)
+            if isinstance(value, str) and value.strip():
+                return value
+    elif isinstance(error, str) and error.strip():
+        return error
+
+    return "provider request failed"
 
 
 def request_with_retry(
     request_fn: Callable[[], httpx.Response],
     *,
     max_retries: int,
+    provider: str,
 ) -> httpx.Response:
     delays = [0.5, 1.0, 2.0]
     attempt = 0
@@ -27,15 +59,18 @@ def request_with_retry(
             resp = request_fn()
             if resp.status_code < 400:
                 return resp
-            if attempt >= max_retries or not is_retryable_status(resp.status_code):
+            retryable = is_retryable_status(resp.status_code)
+            if attempt >= max_retries or not retryable:
+                raw = _safe_json_or_text(resp)
+                error_code = _map_status_to_code(resp.status_code)
                 raise ProviderError(
                     f"Provider returned HTTP {resp.status_code}",
                     ErrorInfo(
-                        code="PROVIDER_ERROR",
-                        message=f"HTTP {resp.status_code}",
-                        provider="",
-                        retryable=is_retryable_status(resp.status_code),
-                        raw=_safe_json_or_text(resp),
+                        code=error_code,
+                        message=_extract_error_message(raw),
+                        provider=provider,
+                        retryable=retryable,
+                        raw=raw,
                     ),
                 )
         except httpx.TimeoutException as exc:
@@ -45,7 +80,7 @@ def request_with_retry(
                     ErrorInfo(
                         code="TIMEOUT",
                         message="Request timed out",
-                        provider="",
+                        provider=provider,
                         retryable=True,
                         raw=str(exc),
                     ),
@@ -57,7 +92,7 @@ def request_with_retry(
                     ErrorInfo(
                         code="PROVIDER_ERROR",
                         message=str(exc),
-                        provider="",
+                        provider=provider,
                         retryable=True,
                         raw=str(exc),
                     ),

@@ -13,42 +13,68 @@ from .base import BaseProvider
 
 class VolcengineProvider(BaseProvider):
     name = "volcengine"
+    default_endpoint = "/api/v3/images/generations"
 
     def generate(self, req: GenerateRequest, *, timeout: int, max_retries: int) -> GenerateResult:
         start = time.perf_counter()
+        provider_options = req.provider_options or {}
+        transport = provider_options.get("transport") or {}
+        provider_payload = provider_options.get("provider_payload") or {}
+        if not isinstance(transport, dict):
+            transport = {}
+        if not isinstance(provider_payload, dict):
+            provider_payload = {}
+        model_id = req.model or self.default_model
+        response_format = "b64_json" if req.output == "b64" else "url"
         payload = {
-            "model": req.model or self.default_model,
+            "model": model_id,
             "prompt": req.prompt,
-            "size": {"width": req.size[0], "height": req.size[1]},
-            "num_images": req.num_images,
+            "size": f"{req.size[0]}x{req.size[1]}",
+            "response_format": response_format,
+            "stream": False,
+            "watermark": True,
+            "n": req.num_images,
             "seed": req.seed,
-            "quality": req.quality,
         }
-        if req.provider_options:
-            payload.update(req.provider_options)
+        if req.quality == "hd":
+            payload["optimize_prompt_options"] = {"mode": "standard"}
+        elif req.quality == "standard":
+            payload["optimize_prompt_options"] = {"mode": "fast"}
 
-        endpoint = (req.provider_options or {}).get("endpoint", "/")
+        payload.update(provider_payload)
+
+        endpoint = transport.get("endpoint") or self.default_endpoint
 
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        if isinstance(transport.get("headers"), dict):
+            headers.update(transport["headers"])
 
         with httpx.Client(base_url=self.base_url, timeout=timeout) as client:
             resp = request_with_retry(
                 lambda: client.post(endpoint, json=payload, headers=headers),
                 max_retries=max_retries,
+                provider=self.name,
             )
 
         data = _safe_json(resp)
+        _raise_for_provider_error(data)
         images = _extract_images(data)
         artifacts = _adapt_output(images, req.output)
+        request_id = (
+            resp.headers.get("x-request-id")
+            or data.get("request_id")
+            or data.get("requestId")
+            or ((data.get("ResponseMetadata") or {}).get("RequestId"))
+        )
 
         return GenerateResult(
             images=artifacts,
             provider=self.name,
-            request_id=resp.headers.get("x-request-id"),
+            request_id=request_id,
             metadata={
-                "model_id": payload["model"],
+                "model_id": model_id,
                 "size": f"{req.size[0]}x{req.size[1]}",
                 "aspect_ratio": req.aspect_ratio,
                 "seed": req.seed,
@@ -81,9 +107,80 @@ def _safe_json(resp: httpx.Response) -> dict[str, Any]:
         ) from exc
 
 
+def _raise_for_provider_error(payload: dict[str, Any]) -> None:
+    error_obj = payload.get("error")
+    if isinstance(error_obj, dict) and error_obj:
+        code_text = str(error_obj.get("code") or "")
+        message = str(error_obj.get("message") or "provider request failed")
+        lower = f"{code_text} {message}".lower()
+        error_code = "PROVIDER_ERROR"
+        retryable = False
+        if "rate" in lower and "limit" in lower:
+            error_code = "RATE_LIMITED"
+            retryable = True
+        elif any(token in lower for token in ("invalid", "illegal", "parameter", "bad request")):
+            error_code = "INVALID_REQUEST"
+        elif any(token in lower for token in ("timeout", "temporar", "busy", "unavailable")):
+            error_code = "TIMEOUT"
+            retryable = True
+        raise ProviderError(
+            message,
+            ErrorInfo(
+                code=error_code,
+                message=message,
+                provider="volcengine",
+                request_id=payload.get("request_id") or payload.get("requestId"),
+                retryable=retryable,
+                raw=payload,
+            ),
+        )
+
+    metadata = payload.get("ResponseMetadata")
+    if isinstance(metadata, dict):
+        err = metadata.get("Error")
+        if isinstance(err, dict) and err:
+            code_text = str(err.get("Code") or "")
+            message = str(err.get("Message") or "provider request failed")
+            lower = f"{code_text} {message}".lower()
+            error_code = "PROVIDER_ERROR"
+            retryable = False
+            if "rate" in lower and "limit" in lower:
+                error_code = "RATE_LIMITED"
+                retryable = True
+            elif any(
+                token in lower for token in ("invalid", "illegal", "parameter", "bad request")
+            ):
+                error_code = "INVALID_REQUEST"
+            elif any(token in lower for token in ("timeout", "temporar", "busy", "unavailable")):
+                error_code = "TIMEOUT"
+                retryable = True
+            raise ProviderError(
+                message,
+                ErrorInfo(
+                    code=error_code,
+                    message=message,
+                    provider="volcengine",
+                    request_id=metadata.get("RequestId"),
+                    retryable=retryable,
+                    raw=payload,
+                ),
+            )
+
+
 def _extract_images(payload: dict[str, Any]) -> list[dict[str, Any]]:
-    data = payload.get("data") or payload
-    candidates = data.get("images") or data.get("result") or []
+    data = payload.get("data") or payload.get("Result") or payload
+    if isinstance(data, list):
+        return [item for item in data if isinstance(item, dict)]
+
+    candidates = (
+        data.get("images")
+        or data.get("image_urls")
+        or data.get("result")
+        or data.get("Results")
+        or []
+    )
+    if isinstance(candidates, dict):
+        candidates = [candidates]
     if not isinstance(candidates, list):
         raise ProviderError(
             "Unexpected image list format",
@@ -94,14 +191,25 @@ def _extract_images(payload: dict[str, Any]) -> list[dict[str, Any]]:
                 raw=payload,
             ),
         )
-    return [item for item in candidates if isinstance(item, dict)]
+    images: list[dict[str, Any]] = []
+    for item in candidates:
+        if isinstance(item, dict):
+            images.append(item)
+        elif isinstance(item, str):
+            images.append({"url": item})
+    return images
 
 
 def _adapt_output(items: list[dict[str, Any]], output_mode: str) -> list[ImageArtifact]:
     artifacts: list[ImageArtifact] = []
     for item in items:
-        url = item.get("url") or item.get("image_url")
-        b64 = item.get("b64") or item.get("base64")
+        url = item.get("url") or item.get("image_url") or item.get("ResultUrl")
+        b64 = (
+            item.get("b64")
+            or item.get("base64")
+            or item.get("image_base64")
+            or item.get("b64_json")
+        )
         mime_type = item.get("mime_type")
         width = item.get("width")
         height = item.get("height")

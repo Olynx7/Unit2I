@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from typing import Any
 
 from .config import PROVIDER_DEFAULTS, resolve_api_key, resolve_base_url, resolve_default_model
 from .errors import ConfigError, ErrorInfo, ProviderError
+from .model_catalog import get_model_capability
 from .normalize import normalize_generate_params
+from .provider_options import normalize_provider_options
 from .providers.registry import PROVIDERS
 from .types import BatchItemResult, GenerateRequest, GenerateResult
 from .utils.rate_limit import TokenBucket
@@ -75,19 +77,25 @@ class Unit2I:
             aspect_ratio=aspect_ratio,
             quality=quality,
             output=output,
-            size_overrides_aspect=size != "square" and aspect_ratio is not None,
+            capability=get_model_capability(
+                self.provider_name,
+                model or self._provider.default_model,
+            ),
         )
+        normalized_provider_options = normalize_provider_options(provider_options)
+
+        model_id = model or self._provider.default_model
 
         req = GenerateRequest(
             prompt=prompt,
-            model=model,
+            model=model_id,
             size=normalized["size"],
             aspect_ratio=normalized["aspect_ratio"],
             num_images=num_images,
             seed=seed,
             quality=normalized["quality"],
             timeout=timeout,
-            provider_options=provider_options,
+            provider_options=normalized_provider_options,
             output=normalized["output"],
         )
 
@@ -140,14 +148,34 @@ class Unit2I:
                 return BatchItemResult(success=False, error=err)
 
         results: list[BatchItemResult | None] = [None] * len(requests)
-        with ThreadPoolExecutor(max_workers=max(1, concurrency)) as ex:
-            future_map = {ex.submit(to_result, req): idx for idx, req in enumerate(requests)}
-            for future in as_completed(future_map):
-                idx = future_map[future]
-                item = future.result()
-                results[idx] = item
-                if fail_fast and not item.success:
-                    break
+        max_workers = max(1, concurrency)
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            future_map: dict[Future[BatchItemResult], int] = {}
+            next_index = 0
+            stop_submit = False
+
+            while next_index < len(requests) and len(future_map) < max_workers:
+                future = ex.submit(to_result, requests[next_index])
+                future_map[future] = next_index
+                next_index += 1
+
+            while future_map:
+                done, _ = wait(set(future_map), return_when=FIRST_COMPLETED)
+                for future in done:
+                    idx = future_map.pop(future)
+                    item = future.result()
+                    results[idx] = item
+                    if fail_fast and not item.success:
+                        stop_submit = True
+
+                while (
+                    not stop_submit
+                    and next_index < len(requests)
+                    and len(future_map) < max_workers
+                ):
+                    future = ex.submit(to_result, requests[next_index])
+                    future_map[future] = next_index
+                    next_index += 1
 
         final_results: list[BatchItemResult] = []
         for item in results:
@@ -157,7 +185,7 @@ class Unit2I:
                         success=False,
                         error=ErrorInfo(
                             code="PROVIDER_ERROR",
-                            message="Batch execution stopped due to fail_fast",
+                            message="Item not executed because fail_fast stopped new submissions",
                             provider=self.provider_name,
                         ),
                     )

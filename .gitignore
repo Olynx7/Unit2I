@@ -7,3 +7,6 @@ __pycache__/
 .env
 coverage.xml
 htmlcov/
+
+plan/
+dist/

@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from .errors import ErrorInfo
+
 
 @dataclass(slots=True)
 class GenerateRequest:
@@ -40,6 +42,3 @@ class BatchItemResult:
     success: bool
     result: GenerateResult | None = None
     error: ErrorInfo | None = None
-
-
-from .errors import ErrorInfo
