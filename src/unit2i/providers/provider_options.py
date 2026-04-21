@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .errors import ErrorInfo, ProviderError
+from ..errors import ErrorInfo, ProviderError
 
 
 def normalize_provider_options(

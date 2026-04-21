@@ -1,6 +1,6 @@
 import os
 
-from .model_catalog import get_provider_default_model
+from .providers.model_catalog import get_provider_default_model
 
 PROVIDER_DEFAULTS: dict[str, dict[str, str]] = {
     "dashscope": {

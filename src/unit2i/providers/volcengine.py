@@ -36,9 +36,9 @@ class VolcengineProvider(BaseProvider):
             "n": req.num_images,
             "seed": req.seed,
         }
-        if req.quality == "hd":
+        if req.quality in {"high", "hd", "ultra"}:
             payload["optimize_prompt_options"] = {"mode": "standard"}
-        elif req.quality == "standard":
+        else:
             payload["optimize_prompt_options"] = {"mode": "fast"}
 
         payload.update(provider_payload)
