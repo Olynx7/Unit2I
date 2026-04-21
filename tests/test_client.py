@@ -39,9 +39,9 @@ def test_batch_generate_keeps_order(monkeypatch) -> None:
 
     batch = sdk.batch_generate(
         [
-            {"prompt": "ok1"},
-            {"prompt": "fail"},
-            {"prompt": "ok2"},
+            {"prompt": "ok1", "aspect_ratio": "1:1"},
+            {"prompt": "fail", "aspect_ratio": "1:1"},
+            {"prompt": "ok2", "aspect_ratio": "1:1"},
         ],
         concurrency=2,
     )
@@ -63,9 +63,9 @@ def test_batch_generate_fail_fast_marks_unsubmitted(monkeypatch) -> None:
 
     batch = sdk.batch_generate(
         [
-            {"prompt": "fail"},
-            {"prompt": "ok1"},
-            {"prompt": "ok2"},
+            {"prompt": "fail", "aspect_ratio": "1:1"},
+            {"prompt": "ok1", "aspect_ratio": "1:1"},
+            {"prompt": "ok2", "aspect_ratio": "1:1"},
         ],
         concurrency=1,
         fail_fast=True,
@@ -79,7 +79,7 @@ def test_batch_generate_fail_fast_marks_unsubmitted(monkeypatch) -> None:
     assert batch[2].success is False
 
 
-def test_generate_uses_aspect_ratio_when_size_default(monkeypatch) -> None:
+def test_generate_size_keeps_priority_when_not_empty(monkeypatch) -> None:
     from unit2i import client as client_module
 
     class _InspectProvider(_FakeProvider):
@@ -103,8 +103,9 @@ def test_generate_uses_aspect_ratio_when_size_default(monkeypatch) -> None:
 
     monkeypatch.setitem(client_module.PROVIDERS, "dashscope", _InspectProvider)
     sdk = Unit2I(provider="dashscope")
-    result = sdk.generate(prompt="ok", aspect_ratio="16:9")
+    result = sdk.generate(prompt="ok", size="1280*1280", aspect_ratio="16:9")
 
-    assert result.images[0].width == 1707
-    assert result.images[0].height == 960
-    assert result.metadata["aspect_ratio"] == "16:9"
+    assert result.images[0].width == 1280
+    assert result.images[0].height == 1280
+    assert result.metadata["aspect_ratio"] == "1:1"
+    assert "SIZE_OVERRIDES_ASPECT_RATIO" in result.metadata["warnings"]
