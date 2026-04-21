@@ -1,10 +1,10 @@
 from unit2i.errors import ProviderError
-from unit2i.model_catalog import (
+from unit2i.providers.model_catalog import (
     get_model_capability,
     get_provider_default_model,
     validate_catalogs,
 )
-from unit2i.provider_options import normalize_provider_options
+from unit2i.providers.provider_options import normalize_provider_options
 
 
 def test_provider_default_models_from_catalog() -> None:

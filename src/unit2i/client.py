@@ -5,9 +5,9 @@ from typing import Any
 
 from .config import PROVIDER_DEFAULTS, resolve_api_key, resolve_base_url, resolve_default_model
 from .errors import ConfigError, ErrorInfo, ProviderError
-from .model_catalog import get_model_capability
 from .normalize import normalize_generate_params
-from .provider_options import normalize_provider_options
+from .providers.model_catalog import get_model_capability
+from .providers.provider_options import normalize_provider_options
 from .providers.registry import PROVIDERS
 from .types import BatchItemResult, GenerateRequest, GenerateResult
 from .utils.rate_limit import TokenBucket
@@ -53,11 +53,11 @@ class Unit2I:
         prompt: str,
         *,
         model: str | None = None,
-        size: str | tuple[int, int] = "square",
+        size: str | tuple[int, int] | None = None,
         aspect_ratio: str | tuple[int, int] | None = None,
         num_images: int = 1,
         seed: int | None = None,
-        quality: str | None = "standard",
+        quality: str | None = None,
         timeout: int | None = None,
         provider_options: dict[str, Any] | None = None,
         output: str = "auto",

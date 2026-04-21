@@ -39,11 +39,10 @@ class DashScopeProvider(BaseProvider):
                 "size": f"{req.size[0]}*{req.size[1]}",
                 "n": req.num_images,
                 "seed": req.seed,
+                "prompt_extend": False,
                 "watermark": True,
             },
         }
-        if req.quality in {"hd", "standard"}:
-            payload["parameters"]["prompt_extend"] = req.quality == "hd"
         if req.output == "b64":
             payload["parameters"]["response_format"] = "b64_json"
         else:
