@@ -63,4 +63,3 @@ testpaths = ["tests"]
 
 [tool.uv]
 default-groups = ["dev"]
-cache-dir = "../../uv_cache"
