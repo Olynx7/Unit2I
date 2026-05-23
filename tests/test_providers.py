@@ -88,7 +88,7 @@ def test_dashscope_request_mapping_and_auto_output(monkeypatch) -> None:
     assert _StubClient.last_json is not None
     assert _StubClient.last_json["input"]["messages"][0]["content"][0]["text"] == "p"
     assert _StubClient.last_json["parameters"]["size"] == "1024*768"
-    assert _StubClient.last_json["parameters"]["response_format"] == "url"
+    assert "response_format" not in _StubClient.last_json["parameters"]  # auto: let API default
     assert _StubClient.last_json["parameters"]["style"] == "photo"
     assert result.request_id == "rid-1"
     assert result.images[0].url == "https://img/1.png"

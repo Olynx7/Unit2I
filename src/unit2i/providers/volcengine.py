@@ -5,9 +5,10 @@ from typing import Any
 
 import httpx
 
-from ..errors import ErrorInfo, OutputError, ProviderError
-from ..types import GenerateRequest, GenerateResult, ImageArtifact
+from ..errors import ErrorInfo, ProviderError
+from ..types import GenerateRequest, GenerateResult
 from ..utils.http import request_with_retry
+from . import _common
 from .base import BaseProvider
 
 
@@ -25,23 +26,27 @@ class VolcengineProvider(BaseProvider):
         if not isinstance(provider_payload, dict):
             provider_payload = {}
         model_id = req.model or self.default_model
-        response_format = "b64_json" if req.output == "b64" else "url"
-        payload = {
+        payload: dict[str, Any] = {
             "model": model_id,
             "prompt": req.prompt,
             "size": f"{req.size[0]}x{req.size[1]}",
-            "response_format": response_format,
             "stream": False,
             "watermark": True,
             "n": req.num_images,
             "seed": req.seed,
         }
+        if req.output == "b64":
+            payload["response_format"] = "b64_json"
+        elif req.output == "url":
+            payload["response_format"] = "url"
         if req.quality in {"high", "hd", "ultra"}:
             payload["optimize_prompt_options"] = {"mode": "standard"}
         else:
             payload["optimize_prompt_options"] = {"mode": "fast"}
 
-        payload.update(provider_payload)
+        for k, v in provider_payload.items():
+            if k not in {"model", "prompt", "size", "n", "seed", "stream", "response_format"}:
+                payload[k] = v
 
         endpoint = transport.get("endpoint") or self.default_endpoint
 
@@ -58,10 +63,10 @@ class VolcengineProvider(BaseProvider):
                 provider=self.name,
             )
 
-        data = _safe_json(resp)
+        data = _common.safe_json(resp, provider=self.name)
         _raise_for_provider_error(data)
         images = _extract_images(data)
-        artifacts = _adapt_output(images, req.output)
+        artifacts = _common.adapt_output(images, output_mode=req.output, provider=self.name)
         request_id = (
             resp.headers.get("x-request-id")
             or data.get("request_id")
@@ -84,27 +89,6 @@ class VolcengineProvider(BaseProvider):
                 "latency_ms": int((time.perf_counter() - start) * 1000),
             },
         )
-
-
-def _safe_json(resp: httpx.Response) -> dict[str, Any]:
-    try:
-        payload = resp.json()
-        if isinstance(payload, dict):
-            return payload
-        raise ProviderError(
-            "Unexpected provider response type",
-            ErrorInfo(code="PROVIDER_ERROR", message="response is not dict", provider="volcengine"),
-        )
-    except ValueError as exc:
-        raise ProviderError(
-            "Invalid JSON response from provider",
-            ErrorInfo(
-                code="PROVIDER_ERROR",
-                message="invalid json",
-                provider="volcengine",
-                raw=resp.text,
-            ),
-        ) from exc
 
 
 def _raise_for_provider_error(payload: dict[str, Any]) -> None:
@@ -131,6 +115,16 @@ def _raise_for_provider_error(payload: dict[str, Any]) -> None:
                 provider="volcengine",
                 request_id=payload.get("request_id") or payload.get("requestId"),
                 retryable=retryable,
+                raw=payload,
+            ),
+        )
+    if isinstance(error_obj, str) and error_obj.strip():
+        raise ProviderError(
+            error_obj,
+            ErrorInfo(
+                code="PROVIDER_ERROR",
+                message=error_obj,
+                provider="volcengine",
                 raw=payload,
             ),
         )
@@ -179,56 +173,4 @@ def _extract_images(payload: dict[str, Any]) -> list[dict[str, Any]]:
         or data.get("Results")
         or []
     )
-    if isinstance(candidates, dict):
-        candidates = [candidates]
-    if not isinstance(candidates, list):
-        raise ProviderError(
-            "Unexpected image list format",
-            ErrorInfo(
-                code="PROVIDER_ERROR",
-                message="image list is not array",
-                provider="volcengine",
-                raw=payload,
-            ),
-        )
-    images: list[dict[str, Any]] = []
-    for item in candidates:
-        if isinstance(item, dict):
-            images.append(item)
-        elif isinstance(item, str):
-            images.append({"url": item})
-    return images
-
-
-def _adapt_output(items: list[dict[str, Any]], output_mode: str) -> list[ImageArtifact]:
-    artifacts: list[ImageArtifact] = []
-    for item in items:
-        url = item.get("url") or item.get("image_url") or item.get("ResultUrl")
-        b64 = (
-            item.get("b64")
-            or item.get("base64")
-            or item.get("image_base64")
-            or item.get("b64_json")
-        )
-        mime_type = item.get("mime_type")
-        width = item.get("width")
-        height = item.get("height")
-
-        if output_mode == "url" and not url:
-            raise OutputError(
-                "No URL available for output='url'",
-                ErrorInfo(
-                    code="NO_URL_AVAILABLE",
-                    message="provider did not return url",
-                    provider="volcengine",
-                ),
-            )
-
-        if output_mode == "b64":
-            url = None
-
-        artifacts.append(
-            ImageArtifact(url=url, b64=b64, mime_type=mime_type, width=width, height=height)
-        )
-
-    return artifacts
+    return _common.normalize_image_items(candidates, provider="volcengine")
