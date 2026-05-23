@@ -140,3 +140,10 @@ def validate_catalogs() -> list[str]:
                 )
 
     return errors
+
+
+_catalog_errors = validate_catalogs()
+if _catalog_errors:
+    raise RuntimeError(
+        f"Model catalog validation failed: {'; '.join(_catalog_errors)}"
+    )
