@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import time
 from typing import Any
@@ -39,10 +39,9 @@ class VolcengineProvider(BaseProvider):
             payload["response_format"] = "b64_json"
         elif req.output == "url":
             payload["response_format"] = "url"
-        if req.quality in {"high", "hd", "ultra"}:
-            payload["optimize_prompt_options"] = {"mode": "standard"}
-        else:
-            payload["optimize_prompt_options"] = {"mode": "fast"}
+        # optimize_prompt_options.mode: only 4.0 supports "fast";
+        # 4.5 / 5.0 require "standard". Use standard universally as the API default.
+        payload["optimize_prompt_options"] = {"mode": "standard"}
 
         for k, v in provider_payload.items():
             if k not in {"model", "prompt", "size", "n", "seed", "stream", "response_format"}:
