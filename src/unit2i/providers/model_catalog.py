@@ -52,7 +52,7 @@ CATALOGS: dict[str, ProviderCatalog] = {
         },
     ),
     "volcengine": ProviderCatalog(
-        default_model="doubao-seedream-4-5",
+        default_model="doubao-seedream-4-5-251128",
         models={
             "doubao-seedream-4-0-250828": ModelCapability(
                 model_id="doubao-seedream-4-0-250828",
@@ -63,8 +63,8 @@ CATALOGS: dict[str, ProviderCatalog] = {
                 max_aspect_ratio=16,
                 supported_outputs={"auto", "url", "b64"},
             ),
-            "doubao-seedream-4-5": ModelCapability(
-                model_id="doubao-seedream-4-5",
+            "doubao-seedream-4-5-251128": ModelCapability(
+                model_id="doubao-seedream-4-5-251128",
                 default_square_size=2048,
                 min_pixels=2560 * 1440,
                 max_pixels=4096 * 4096,
@@ -72,8 +72,8 @@ CATALOGS: dict[str, ProviderCatalog] = {
                 max_aspect_ratio=16,
                 supported_outputs={"auto", "url", "b64"},
             ),
-            "doubao-seedream-5-lite": ModelCapability(
-                model_id="doubao-seedream-5-lite",
+            "doubao-seedream-5-0-260128": ModelCapability(
+                model_id="doubao-seedream-5-0-260128",
                 default_square_size=2048,
                 min_pixels=2560 * 1440,
                 max_pixels=10404496,
@@ -140,3 +140,10 @@ def validate_catalogs() -> list[str]:
                 )
 
     return errors
+
+
+_catalog_errors = validate_catalogs()
+if _catalog_errors:
+    raise RuntimeError(
+        f"Model catalog validation failed: {'; '.join(_catalog_errors)}"
+    )

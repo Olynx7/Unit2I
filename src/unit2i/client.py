@@ -26,6 +26,22 @@ class Unit2I:
         rate_limit_rps: float = 2.0,
         rate_limit_burst: int = 4,
     ) -> None:
+        if timeout < 1:
+            raise ConfigError(
+                "timeout must be >= 1",
+                ErrorInfo(
+                    code="INVALID_REQUEST",
+                    message="timeout must be >= 1",
+                    provider=provider,
+                ),
+            )
+        if max_retries < 0:
+            raise ConfigError(
+                "max_retries must be >= 0",
+                ErrorInfo(
+                    code="INVALID_REQUEST", message="max_retries must be >= 0", provider=provider
+                ),
+            )
         if provider not in PROVIDER_DEFAULTS:
             raise ConfigError(
                 f"Unsupported provider: {provider}",
@@ -68,6 +84,25 @@ class Unit2I:
                 ErrorInfo(
                     code="INVALID_REQUEST",
                     message="prompt is required",
+                    provider=self.provider_name,
+                ),
+            )
+
+        if num_images < 1:
+            raise ProviderError(
+                "num_images must be >= 1",
+                ErrorInfo(
+                    code="INVALID_REQUEST",
+                    message="num_images must be >= 1",
+                    provider=self.provider_name,
+                ),
+            )
+        if timeout is not None and timeout < 1:
+            raise ProviderError(
+                "timeout must be >= 1",
+                ErrorInfo(
+                    code="INVALID_REQUEST",
+                    message="timeout must be >= 1",
                     provider=self.provider_name,
                 ),
             )
@@ -117,6 +152,16 @@ class Unit2I:
         concurrency: int = 4,
         fail_fast: bool = False,
     ) -> list[BatchItemResult]:
+        if concurrency < 1:
+            raise ProviderError(
+                "concurrency must be >= 1",
+                ErrorInfo(
+                    code="INVALID_REQUEST",
+                    message="concurrency must be >= 1",
+                    provider=self.provider_name,
+                ),
+            )
+
         def to_result(item: GenerateRequest | dict[str, Any]) -> BatchItemResult:
             try:
                 if isinstance(item, GenerateRequest):

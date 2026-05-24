@@ -1,0 +1,15 @@
+# 最关键的规则：自动检测文本文件，并统一使用 LF 换行符
+* text=auto eol=lf
+
+# 针对特定文本文件，强制使用 LF 换行符（如 Shell 脚本）
+*.sh text eol=lf
+*.py text eol=lf
+
+# 针对 Windows 相关的脚本文件，强制使用 CRLF 换行符
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 明确指定二进制文件，确保 Git 完全不会对其进行任何换行符转换
+*.png binary
+*.jpg binary
+*.pdf binary
