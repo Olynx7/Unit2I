@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 
 from unit2i.errors import ProviderError
 from unit2i.normalize import normalize_generate_params
@@ -71,7 +71,7 @@ def test_size_has_higher_priority_than_aspect_ratio() -> None:
 
 
 def test_size_empty_derives_from_aspect_ratio_and_quality() -> None:
-    cap = get_model_capability("volcengine", "doubao-seedream-4-5")
+    cap = get_model_capability("volcengine", "doubao-seedream-4-5-251128")
     assert cap is not None
 
     data = normalize_generate_params(
@@ -90,7 +90,7 @@ def test_size_empty_derives_from_aspect_ratio_and_quality() -> None:
 
 
 def test_size_empty_quality_level_changes_derived_pixels() -> None:
-    cap = get_model_capability("volcengine", "doubao-seedream-4-5")
+    cap = get_model_capability("volcengine", "doubao-seedream-4-5-251128")
     assert cap is not None
 
     low = normalize_generate_params(

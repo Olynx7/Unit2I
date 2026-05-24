@@ -224,7 +224,7 @@ def _adjust_size_to_capability(
         factor = sqrt(capability.min_pixels / pixels)
         width = max(1, int(round(width * factor)))
         height = max(1, int(round(height * factor)))
-        while width * height < capability.min_pixels:
+        while width * height < capability.min_pixels and width < 100000:
             width += 1
         adjusted = True
 
@@ -233,8 +233,13 @@ def _adjust_size_to_capability(
         factor = sqrt(capability.max_pixels / pixels)
         width = max(1, int(round(width * factor)))
         height = max(1, int(round(height * factor)))
-        while width * height > capability.max_pixels and width > 1:
-            width -= 1
+        while width * height > capability.max_pixels:
+            if width > 1:
+                width -= 1
+            elif height > 1:
+                height -= 1
+            else:
+                break
         adjusted = True
 
     if capability.fixed_sizes and (width, height) not in capability.fixed_sizes:

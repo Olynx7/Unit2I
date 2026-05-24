@@ -1,4 +1,4 @@
-from unit2i.errors import ProviderError
+﻿from unit2i.errors import ProviderError
 from unit2i.providers.model_catalog import (
     get_model_capability,
     get_provider_default_model,
@@ -9,11 +9,11 @@ from unit2i.providers.provider_options import normalize_provider_options
 
 def test_provider_default_models_from_catalog() -> None:
     assert get_provider_default_model("dashscope") == "wan2.6-t2i"
-    assert get_provider_default_model("volcengine") == "doubao-seedream-4-5"
+    assert get_provider_default_model("volcengine") == "doubao-seedream-4-5-251128"
 
 
 def test_model_capability_lookup() -> None:
-    cap = get_model_capability("volcengine", "doubao-seedream-4-5")
+    cap = get_model_capability("volcengine", "doubao-seedream-4-5-251128")
     assert cap is not None
     assert cap.default_square_size == 2048
     assert cap.max_pixels == 4096 * 4096

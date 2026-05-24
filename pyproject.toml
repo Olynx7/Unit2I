@@ -18,12 +18,19 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "License :: OSI Approved :: MIT License",
   "Intended Audience :: Developers"
 ]
 dependencies = [
   "httpx>=0.27.0"
 ]
+
+[project.urls]
+Homepage = "https://github.com/Olynx7/Unit2I"
+Repository = "https://github.com/Olynx7/Unit2I.git"
+Issues = "https://github.com/Olynx7/Unit2I/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -63,4 +70,3 @@ testpaths = ["tests"]
 
 [tool.uv]
 default-groups = ["dev"]
-cache-dir = "../../uv_cache"
