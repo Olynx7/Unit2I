@@ -88,12 +88,24 @@ class Unit2I:
                 ),
             )
 
+        model_id = model or self._provider.default_model
+        capability = get_model_capability(self.provider_name, model_id)
+
         if num_images < 1:
             raise ProviderError(
                 "num_images must be >= 1",
                 ErrorInfo(
                     code="INVALID_REQUEST",
                     message="num_images must be >= 1",
+                    provider=self.provider_name,
+                ),
+            )
+        if capability is not None and num_images > capability.max_images:
+            raise ProviderError(
+                f"num_images exceeds model limit of {capability.max_images}",
+                ErrorInfo(
+                    code="INVALID_REQUEST",
+                    message=f"num_images exceeds model limit of {capability.max_images}",
                     provider=self.provider_name,
                 ),
             )
@@ -112,14 +124,9 @@ class Unit2I:
             aspect_ratio=aspect_ratio,
             quality=quality,
             output=output,
-            capability=get_model_capability(
-                self.provider_name,
-                model or self._provider.default_model,
-            ),
+            capability=capability,
         )
         normalized_provider_options = normalize_provider_options(provider_options)
-
-        model_id = model or self._provider.default_model
 
         req = GenerateRequest(
             prompt=prompt,
