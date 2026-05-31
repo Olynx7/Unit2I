@@ -48,7 +48,7 @@ def test_num_images_within_model_limit_ok() -> None:
         sdk.generate(prompt="test", num_images=4, size="1024*1024")
     except ProviderError as exc:
         if "exceeds model limit" in str(exc):
-            raise AssertionError("num_images=4 should be allowed for wan2.6-t2i") from exc
+            raise AssertionError("num_images=4 should be allowed for wan2.6-t2i")
 
 
 def test_batch_generate_keeps_order(monkeypatch) -> None:
