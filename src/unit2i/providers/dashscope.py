@@ -44,8 +44,8 @@ class DashScopeProvider(BaseProvider):
                 "watermark": True,
             },
         }
-        if req.output == "b64":
-            payload["parameters"]["response_format"] = "b64_json"
+        if req.output == "auto":
+            payload["parameters"]["response_format"] = "url"
         elif req.output == "url":
             payload["parameters"]["response_format"] = "url"
 
