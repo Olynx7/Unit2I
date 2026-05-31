@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 
@@ -7,6 +7,7 @@ from dataclasses import dataclass
 class ModelCapability:
     model_id: str
     default_square_size: int
+    max_images: int = 1
     min_pixels: int | None = None
     max_pixels: int | None = None
     min_aspect_ratio: float | None = None
@@ -25,38 +26,101 @@ CATALOGS: dict[str, ProviderCatalog] = {
     "dashscope": ProviderCatalog(
         default_model="wan2.6-t2i",
         models={
+            "qwen-image-2.0": ModelCapability(
+                model_id="qwen-image-2.0",
+                default_square_size=1024,
+                max_images=6,
+                min_pixels=512 * 512,
+                max_pixels=2048 * 2048,
+                min_aspect_ratio=1 / 4,
+                max_aspect_ratio=4,
+                supported_outputs={"auto", "url"},
+            ),
+            "qwen-image-2.0-pro": ModelCapability(
+                model_id="qwen-image-2.0-pro",
+                default_square_size=1024,
+                max_images=6,
+                min_pixels=512 * 512,
+                max_pixels=2048 * 2048,
+                min_aspect_ratio=1 / 4,
+                max_aspect_ratio=4,
+                supported_outputs={"auto", "url"},
+            ),
+            "qwen-image-max": ModelCapability(
+                model_id="qwen-image-max",
+                default_square_size=1328,
+                max_images=1,
+                min_pixels=None,
+                max_pixels=None,
+                fixed_sizes={(1664, 928), (1472, 1104), (1328, 1328), (1104, 1472), (928, 1664)},
+                supported_outputs={"auto", "url"},
+            ),
+            "qwen-image-plus": ModelCapability(
+                model_id="qwen-image-plus",
+                default_square_size=1328,
+                max_images=1,
+                min_pixels=None,
+                max_pixels=None,
+                fixed_sizes={(1664, 928), (1472, 1104), (1328, 1328), (1104, 1472), (928, 1664)},
+                supported_outputs={"auto", "url"},
+            ),
             "wan2.6-t2i": ModelCapability(
                 model_id="wan2.6-t2i",
                 default_square_size=1280,
+                max_images=4,
                 min_pixels=1280 * 1280,
                 max_pixels=1440 * 1440,
                 min_aspect_ratio=1 / 4,
                 max_aspect_ratio=4,
-                supported_outputs={"auto", "url", "b64"},
+                supported_outputs={"auto", "url"},
             ),
-            "qwen-image-2.0-pro": ModelCapability(
-                model_id="qwen-image-2.0-pro",
-                default_square_size=2048,
-                min_pixels=512 * 512,
+            "wan2.7-image": ModelCapability(
+                model_id="wan2.7-image",
+                default_square_size=1024,
+                max_images=4,
+                min_pixels=768 * 768,
                 max_pixels=2048 * 2048,
-                supported_outputs={"auto", "url", "b64"},
+                min_aspect_ratio=1 / 4,
+                max_aspect_ratio=4,
+                supported_outputs={"auto", "url"},
+            ),
+            "wan2.7-image-pro": ModelCapability(
+                model_id="wan2.7-image-pro",
+                default_square_size=2048,
+                max_images=4,
+                min_pixels=768 * 768,
+                max_pixels=4096 * 4096,
+                min_aspect_ratio=1 / 4,
+                max_aspect_ratio=4,
+                supported_outputs={"auto", "url"},
             ),
             "z-image-turbo": ModelCapability(
                 model_id="z-image-turbo",
                 default_square_size=1024,
-                min_pixels=None,
-                max_pixels=None,
-                fixed_sizes={(1024, 1024), (1024, 1536), (1536, 1024)},
-                supported_outputs={"auto", "url", "b64"},
+                max_images=1,
+                min_pixels=512 * 512,
+                max_pixels=2048 * 2048,
+                min_aspect_ratio=1 / 4,
+                max_aspect_ratio=4,
+                supported_outputs={"auto", "url"},
             ),
         },
     ),
     "volcengine": ProviderCatalog(
         default_model="doubao-seedream-4-5-251128",
         models={
+            "doubao-seedream-3-0-t2i-250415": ModelCapability(
+                model_id="doubao-seedream-3-0-t2i-250415",
+                default_square_size=1024,
+                max_images=1,
+                min_pixels=512 * 512,
+                max_pixels=2048 * 2048,
+                supported_outputs={"auto", "url", "b64"},
+            ),
             "doubao-seedream-4-0-250828": ModelCapability(
                 model_id="doubao-seedream-4-0-250828",
                 default_square_size=2048,
+                max_images=1,
                 min_pixels=1280 * 720,
                 max_pixels=4096 * 4096,
                 min_aspect_ratio=1 / 16,
@@ -66,6 +130,7 @@ CATALOGS: dict[str, ProviderCatalog] = {
             "doubao-seedream-4-5-251128": ModelCapability(
                 model_id="doubao-seedream-4-5-251128",
                 default_square_size=2048,
+                max_images=1,
                 min_pixels=2560 * 1440,
                 max_pixels=4096 * 4096,
                 min_aspect_ratio=1 / 16,
@@ -75,8 +140,19 @@ CATALOGS: dict[str, ProviderCatalog] = {
             "doubao-seedream-5-0-260128": ModelCapability(
                 model_id="doubao-seedream-5-0-260128",
                 default_square_size=2048,
+                max_images=1,
                 min_pixels=2560 * 1440,
-                max_pixels=10404496,
+                max_pixels=4096 * 4096,
+                min_aspect_ratio=1 / 16,
+                max_aspect_ratio=16,
+                supported_outputs={"auto", "url", "b64"},
+            ),
+            "doubao-seedream-5.0-lite": ModelCapability(
+                model_id="doubao-seedream-5.0-lite",
+                default_square_size=2048,
+                max_images=1,
+                min_pixels=2560 * 1440,
+                max_pixels=4096 * 4096,
                 min_aspect_ratio=1 / 16,
                 max_aspect_ratio=16,
                 supported_outputs={"auto", "url", "b64"},
@@ -112,6 +188,9 @@ def validate_catalogs() -> list[str]:
         for model_id, capability in catalog.models.items():
             if capability.default_square_size <= 0:
                 errors.append(f"{provider}/{model_id}: default_square_size must be positive")
+
+            if capability.max_images < 1:
+                errors.append(f"{provider}/{model_id}: max_images must be >= 1")
 
             if capability.fixed_sizes is not None:
                 for fixed_w, fixed_h in capability.fixed_sizes:

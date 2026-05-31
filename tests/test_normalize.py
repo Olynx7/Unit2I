@@ -150,7 +150,7 @@ def test_model_capability_rejects_oversized_pixels() -> None:
 
 
 def test_fixed_size_model_adjusts_to_supported_size() -> None:
-    cap = get_model_capability("dashscope", "z-image-turbo")
+    cap = get_model_capability("dashscope", "qwen-image-max")
     assert cap is not None
     assert cap.fixed_sizes is not None
 
@@ -166,7 +166,7 @@ def test_fixed_size_model_adjusts_to_supported_size() -> None:
 
 
 def test_fixed_size_model_aspect_quality_result_in_fixed_sizes() -> None:
-    cap = get_model_capability("dashscope", "z-image-turbo")
+    cap = get_model_capability("dashscope", "qwen-image-max")
     assert cap is not None
     assert cap.fixed_sizes is not None
 

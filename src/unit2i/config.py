@@ -1,4 +1,4 @@
-import os
+﻿import os
 
 from .providers.model_catalog import get_provider_default_model
 
@@ -13,7 +13,7 @@ PROVIDER_DEFAULTS: dict[str, dict[str, str]] = {
         "api_key_env": "UNIT2I_VOLC_API_KEY",
         "base_url_env": "UNIT2I_VOLC_BASE_URL",
         "default_base_url": "https://ark.cn-beijing.volces.com",
-        "default_model": "doubao-seedream-4-5",
+        "default_model": "doubao-seedream-4-5-251128",
     },
 }
 

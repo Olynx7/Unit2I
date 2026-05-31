@@ -39,6 +39,8 @@ class VolcengineProvider(BaseProvider):
             payload["response_format"] = "b64_json"
         elif req.output == "url":
             payload["response_format"] = "url"
+        elif req.output == "auto":
+            payload["response_format"] = "url"
         # optimize_prompt_options.mode: only 4.0 supports "fast";
         # 4.5 / 5.0 require "standard". Use standard universally as the API default.
         payload["optimize_prompt_options"] = {"mode": "standard"}
