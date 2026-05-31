@@ -17,6 +17,33 @@ def test_model_capability_lookup() -> None:
     assert cap is not None
     assert cap.default_square_size == 2048
     assert cap.max_pixels == 4096 * 4096
+    assert cap.max_images == 1
+
+
+def test_new_models_in_catalog() -> None:
+    # qwen-image-2.0 (non-pro)
+    cap = get_model_capability("dashscope", "qwen-image-2.0")
+    assert cap is not None
+    assert cap.max_images == 6
+    assert cap.default_square_size == 1024
+
+    # wan2.7-image-pro
+    cap = get_model_capability("dashscope", "wan2.7-image-pro")
+    assert cap is not None
+    assert cap.max_images == 4
+    assert cap.default_square_size == 2048
+
+    # wan2.7-image
+    cap = get_model_capability("dashscope", "wan2.7-image")
+    assert cap is not None
+    assert cap.max_images == 4
+    assert cap.default_square_size == 1024
+
+    # doubao-seedream-5.0-lite
+    cap = get_model_capability("volcengine", "doubao-seedream-5.0-lite")
+    assert cap is not None
+    assert cap.max_images == 1
+    assert cap.default_square_size == 2048
 
 
 def test_catalog_schema_validation_passes() -> None:
