@@ -1,5 +1,5 @@
-from unit2i import ConfigError, Unit2I
-from unit2i.errors import ErrorInfo
+﻿from unit2i import ConfigError, Unit2I
+from unit2i.errors import ErrorInfo, ProviderError
 from unit2i.types import BatchItemResult, GenerateResult, ImageArtifact
 
 
@@ -29,6 +29,26 @@ def test_invalid_provider() -> None:
         raise AssertionError("expected ConfigError")
     except ConfigError:
         assert True
+
+
+def test_num_images_exceeds_model_limit() -> None:
+    sdk = Unit2I(provider="dashscope", api_key="test")
+    try:
+        sdk.generate(prompt="test", num_images=10, size="1024*1024")
+        raise AssertionError("expected ProviderError")
+    except ProviderError as exc:
+        assert exc.error is not None
+        assert exc.error.code == "INVALID_REQUEST"
+        assert "exceeds model limit" in exc.error.message
+
+
+def test_num_images_within_model_limit_ok() -> None:
+    sdk = Unit2I(provider="dashscope", api_key="test")
+    try:
+        sdk.generate(prompt="test", num_images=4, size="1024*1024")
+    except ProviderError as exc:
+        if "exceeds model limit" in str(exc):
+            raise AssertionError("num_images=4 should be allowed for wan2.6-t2i") from exc
 
 
 def test_batch_generate_keeps_order(monkeypatch) -> None:
